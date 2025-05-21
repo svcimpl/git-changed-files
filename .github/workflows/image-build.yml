@@ -26,3 +26,11 @@ jobs:
                  echo "all=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
             - name: EchoChangedFiles
               run: echo "${{ steps.changes.outputs.all }}"
+            - name: GetChangesWithRemote
+              run: |
+                git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/svcimpl/git-changed-files.git --tags main | sed "s/\tHEAD//" | cut -d $'\t' -f 1
+                export MAIN_SHA=$(git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/svcimpl/git-changed-files.git --tags main | sed "s/\tHEAD//" | cut -d $'\t' -f 1)
+                echo "MAIN_SHA = ${MAIN_SHA}"
+                git diff ${MAIN_SHA} --name-only
+                ls
+
