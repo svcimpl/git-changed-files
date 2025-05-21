@@ -1,0 +1,28 @@
+name: CI
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+jobs:
+    changedfiles:
+        runs-on: ubuntu-latest
+        outputs:
+            all: ${{ steps.changes.outputs.all }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: DumpContext
+              env:
+                GITHUB_CONTEXT: ${{ toJson(github) }}
+              run: echo "$GITHUB_CONTEXT"
+            - name: GetChangedFiles
+              id: changes
+              run: |
+                 echo "all=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
+            - name: EchoChangedFiles
+              run: echo "${{ steps.changes.outputs.all }}"
