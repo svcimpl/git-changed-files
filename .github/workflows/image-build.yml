@@ -32,4 +32,5 @@ jobs:
                 export MAIN_SHA=$(git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/svcimpl/git-changed-files.git --tags main | sed "s/\tHEAD//" | cut -d $'\t' -f 1)
                 echo "MAIN_SHA = ${MAIN_SHA}"
                 git diff ${MAIN_SHA} --name-only
+                ls
 
