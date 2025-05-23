@@ -7,6 +7,15 @@ on:
         branches:
             - main
 jobs:
+
+    debug:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Dump context
+              env:
+                  GITHUB_CONTEXT: ${{ toJson(github) }}
+              run: echo "$GITHUB_CONTEXT"
+
     changedfiles:
         runs-on: ubuntu-latest
         outputs:
@@ -15,22 +24,26 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
               with:
-                fetch-depth: 0
-            - name: DumpContext
-              env:
-                GITHUB_CONTEXT: ${{ toJson(github) }}
-              run: echo "$GITHUB_CONTEXT"
-            - name: GetChangedFiles
+                  fetch-depth: 0
+            - name: Get Changed files
               id: changes
               run: |
-                 echo "all=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
-            - name: EchoChangedFiles
-              run: echo "${{ steps.changes.outputs.all }}"
-            - name: GetChangesWithRemote
-              run: |
-                git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/svcimpl/git-changed-files.git --tags main | sed "s/\tHEAD//" | cut -d $'\t' -f 1
-                export MAIN_SHA=$(git ls-remote https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/svcimpl/git-changed-files.git --tags main | sed "s/\tHEAD//" | cut -d $'\t' -f 1)
-                echo "MAIN_SHA = ${MAIN_SHA}"
-                git diff ${MAIN_SHA} --name-only
-                ls
+                if [ "${{ github.event_name }}" = "pull_request" ]; then
+                  echo "Pull Request Changes"
+                  echo "all=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
+                  echo "GITHUB_OUTPUT = $GITHUB_OUTPUT"
+                elif [ ${{ github.ref == 'refs/heads/main' }} ]; then
+                  echo "Merge to main changes"
+                  if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+                     echo "all=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.before }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
+                  else
+                     echo "This is the first commit"
+                  fi
+                fi
 
+    build:
+        needs: changedfiles
+        runs-on: ubuntu-latest
+        steps:
+            - name: echo changed files
+              run: echo "${{ needs.changedfiles.outputs.all }}"
